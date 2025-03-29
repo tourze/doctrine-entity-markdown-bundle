@@ -1,1 +1,0 @@
-# doctrine-entity-markdown-bundle
