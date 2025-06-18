@@ -81,8 +81,6 @@ class EntityServiceTest extends TestCase
         });
 
         $result = $this->entityService->getEntityMetadata('App\Entity\User');
-
-        $this->assertIsArray($result);
         $this->assertEquals('user_table', $result['tableName']);
         $this->assertEquals('用户表', $result['comment']);
         $this->assertArrayHasKey('fields', $result);
@@ -129,8 +127,6 @@ class EntityServiceTest extends TestCase
         });
 
         $result = $this->entityService->getAllEntitiesMetadata();
-
-        $this->assertIsArray($result);
         $this->assertCount(2, $result);
         $this->assertArrayHasKey('App\Entity\User', $result);
         $this->assertArrayHasKey('App\Entity\Order', $result);
