@@ -129,7 +129,7 @@ class EntityService
         }
 
         // 完善注释
-        $comment = $info['comment'] ?: '-';
+        $comment = $info['comment'] !== '' ? $info['comment'] : '-';
         if ($info['isPrimaryKey']) {
             $comment .= ' (主键)';
         }
@@ -277,7 +277,7 @@ class EntityService
             $markdown .= "## {$tableName}\n";
 
             // 获取表注释
-            $tableComment = $metadata['comment'] ?: '无';
+            $tableComment = $metadata['comment'] ?? '无';
             $markdown .= "{$tableComment}\n\n";
 
             $markdown .= "### 字段\n";
@@ -287,9 +287,9 @@ class EntityService
             // 输出所有字段
             foreach ($metadata['fields'] as $fieldName => $field) {
                 $length = $field['length'] ?? '-';
-                $nullable = $field['nullable'] ? 'Y' : 'N';
+                $nullable = isset($field['nullable']) && $field['nullable'] ? 'Y' : 'N';
                 $default = $field['default'] ?? '-';
-                $comment = $field['comment'] ?: '-';
+                $comment = $field['comment'] ?? '-';
 
                 $markdown .= "\n| {$field['columnName']} | {$field['type']} | {$length} | {$nullable} | {$default} | {$comment} |";
             }

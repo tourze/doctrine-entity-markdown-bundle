@@ -6,5 +6,7 @@ services:
 
   Tourze\DoctrineEntityMarkdownBundle\Command\:
     resource: '../../Command/'
+  Tourze\DoctrineEntityMarkdownBundle\MCP\:
+    resource: '../../MCP/'
   Tourze\DoctrineEntityMarkdownBundle\Service\:
     resource: '../../Service/'
