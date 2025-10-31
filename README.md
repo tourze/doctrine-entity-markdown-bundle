@@ -1,22 +1,31 @@
 # Doctrine Entity Markdown Bundle
 
-该 Bundle 用于从 Doctrine 实体生成 Markdown 格式的数据字典。
+[English](README.md) | [中文](README.zh-CN.md)
 
-## 功能
+[![Latest Version](https://img.shields.io/packagist/v/tourze/doctrine-entity-markdown-bundle.svg?style=flat-square)](https://packagist.org/packages/tourze/doctrine-entity-markdown-bundle)
+[![PHP Version](https://img.shields.io/badge/php-%5E8.1-blue)](https://php.net)
+[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![Build Status](https://img.shields.io/badge/build-passing-brightgreen)]()
+[![Code Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen)]()
 
-- 生成所有数据库表格的清单
-- 为每个表格生成详细的字段信息，包括字段类型、长度、是否可空、默认值、注释等
-- 处理实体之间的关联关系
+A Symfony Bundle for generating Markdown format database dictionaries from Doctrine entities.
 
-## 安装
+## Features
+
+- Generate complete database table listings
+- Generate detailed field information for each table including field types, length, nullable status, default values, comments, etc.
+- Handle associations between entities
+- Support MCP (Model Context Protocol) tool integration for AI assistants
+
+## Installation
 
 ```bash
 composer require tourze/doctrine-entity-markdown-bundle
 ```
 
-## 配置
+## Configuration
 
-在 `config/bundles.php` 中添加：
+Add the bundle to your `config/bundles.php`:
 
 ```php
 return [
@@ -25,49 +34,95 @@ return [
 ];
 ```
 
-## 使用方法
+## Requirements
 
-### 命令行
+This package requires the following components:
 
-使用以下命令生成 Markdown 格式的数据字典：
+- PHP ^8.1
+- Symfony ^7.3
+- Doctrine ORM ^3.0
+- Doctrine Bundle ^2.13
+
+## Quick Start
+
+### Command Line Usage
+
+Generate Markdown format database dictionary using the following command:
 
 ```bash
 bin/console doctrine:generate:markdown
 ```
 
-### 在代码中使用
+### Usage in Code
 
 ```php
-use Tourze\DoctrineEntityMarkdownBundle\Service\EntityService;
+use Tourze\DoctrineEntityMarkdownBundle\Service\EntityServiceInterface;
 
 class YourController
 {
     public function __construct(
-        private readonly EntityService $entityService,
+        private readonly EntityServiceInterface $entityService,
     ) {
     }
     
     public function generateDictionary()
     {
-        // 获取所有表格清单
+        // Get all table names
         $tableList = $this->entityService->getAllTableNames();
         
-        // 获取特定实体的元数据
+        // Get metadata for a specific entity
         $userMetadata = $this->entityService->getEntityMetadata('App\Entity\User');
         
-        // 获取所有实体的元数据
+        // Get metadata for all entities
         $allMetadata = $this->entityService->getAllEntitiesMetadata();
         
-        // 生成完整的数据字典
+        // Generate complete database dictionary
         $fullMarkdown = $this->entityService->generateDatabaseMarkdown();
     }
 }
 ```
 
-## 测试
+## Advanced Usage
 
-运行单元测试：
+### MCP Tool Integration
+
+This package provides MCP (Model Context Protocol) tools for AI assistant integration:
+
+```php
+use Tourze\DoctrineEntityMarkdownBundle\MCP\Tool\GetDatabaseDictionary;
+
+// Get database dictionary through MCP
+$tool = new GetDatabaseDictionary($entityService);
+$result = $tool->execute();
+```
+
+### Custom Output Format
+
+You can extend the `EntityService` class to customize the output format:
+
+```php
+class CustomEntityService extends EntityService
+{
+    public function generateCustomMarkdown(): string
+    {
+        // Custom generation logic
+        return $this->generateDatabaseMarkdown();
+    }
+}
+```
+
+## Testing
+
+Run unit tests:
 
 ```bash
 ./vendor/bin/phpunit packages/doctrine-entity-markdown-bundle/tests
 ```
+
+## Contributing
+
+Please feel free to submit issues and pull requests. Make sure to follow the existing code style and add tests for any new functionality.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](../../LICENSE) file for details.

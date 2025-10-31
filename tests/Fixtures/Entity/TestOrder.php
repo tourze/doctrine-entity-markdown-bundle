@@ -29,6 +29,7 @@ class TestOrder
     public function setAmount(string $amount): self
     {
         $this->amount = $amount;
+
         return $this;
     }
 }

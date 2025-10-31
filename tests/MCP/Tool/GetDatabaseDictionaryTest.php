@@ -2,19 +2,23 @@
 
 namespace Tourze\DoctrineEntityMarkdownBundle\Tests\MCP\Tool;
 
-use PHPUnit\Framework\TestCase;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Tourze\DoctrineEntityMarkdownBundle\MCP\Tool\GetDatabaseDictionary;
-use Tourze\DoctrineEntityMarkdownBundle\Service\EntityService;
+use Tourze\PHPUnitSymfonyKernelTest\AbstractIntegrationTestCase;
 
-class GetDatabaseDictionaryTest extends TestCase
+/**
+ * @internal
+ */
+#[CoversClass(GetDatabaseDictionary::class)]
+#[RunTestsInSeparateProcesses]
+final class GetDatabaseDictionaryTest extends AbstractIntegrationTestCase
 {
-    private EntityService $entityService;
     private GetDatabaseDictionary $tool;
 
-    protected function setUp(): void
+    protected function onSetUp(): void
     {
-        $this->entityService = $this->createMock(EntityService::class);
-        $this->tool = new GetDatabaseDictionary($this->entityService);
+        $this->tool = self::getService(GetDatabaseDictionary::class);
     }
 
     public function testGetName(): void
@@ -39,23 +43,17 @@ class GetDatabaseDictionaryTest extends TestCase
 
     public function testExecute(): void
     {
-        $expectedMarkdown = '# 数据库字典\n\n## user_table\n...';
-        $this->entityService->expects($this->once())
-            ->method('generateDatabaseMarkdown')
-            ->willReturn($expectedMarkdown);
-
         $result = $this->tool->execute();
-        $this->assertEquals($expectedMarkdown, $result);
+        $this->assertIsString($result);
+        $this->assertStringContainsString('## ', $result);
+        $this->assertStringContainsString('### 字段', $result);
     }
 
     public function testExecuteWithParameters(): void
     {
-        $expectedMarkdown = '# 数据库字典\n\n## user_table\n...';
-        $this->entityService->expects($this->once())
-            ->method('generateDatabaseMarkdown')
-            ->willReturn($expectedMarkdown);
-
         $result = $this->tool->execute(['ignored' => 'parameter']);
-        $this->assertEquals($expectedMarkdown, $result);
+        $this->assertIsString($result);
+        $this->assertStringContainsString('## ', $result);
+        $this->assertStringContainsString('### 字段', $result);
     }
 }

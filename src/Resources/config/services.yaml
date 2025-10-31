@@ -6,7 +6,12 @@ services:
 
   Tourze\DoctrineEntityMarkdownBundle\Command\:
     resource: '../../Command/'
+  Tourze\DoctrineEntityMarkdownBundle\DependencyInjection\:
+    resource: '../../DependencyInjection/'
+    public: true
   Tourze\DoctrineEntityMarkdownBundle\MCP\:
     resource: '../../MCP/'
+    public: true
   Tourze\DoctrineEntityMarkdownBundle\Service\:
     resource: '../../Service/'
+
