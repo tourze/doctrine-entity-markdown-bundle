@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tourze\DoctrineEntityMarkdownBundle\MCP\Tool;
 
 use Tourze\DoctrineEntityMarkdownBundle\Service\EntityServiceInterface;

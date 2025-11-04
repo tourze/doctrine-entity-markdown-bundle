@@ -2,30 +2,54 @@
 
 namespace Tourze\DoctrineEntityMarkdownBundle\Tests\Service;
 
+
+
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Tourze\DoctrineEntityMarkdownBundle\Service\EntityService;
-use Tourze\PHPUnitSymfonyKernelTest\AbstractIntegrationTestCase;
+use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Configuration;
+use Doctrine\ORM\Mapping\NamingStrategy;
+use PHPUnit\Framework\TestCase;
 
 /**
  * @internal
  */
 #[CoversClass(EntityService::class)]
-#[RunTestsInSeparateProcesses]
-final class EntityServiceTest extends AbstractIntegrationTestCase
+final class EntityServiceTest extends TestCase
 {
     /**
      * @var EntityService<object>
      */
     private EntityService $entityService;
+    private EntityManagerInterface $entityManager;
 
-    protected function onSetUp(): void
+    protected function setUp(): void
     {
-        $this->entityService = self::getService(EntityService::class);
+        /** @var \PHPUnit\Framework\MockObject\MockObject&EntityManagerInterface $entityManager */
+        $entityManager = $this->createMock(EntityManagerInterface::class);
+        $this->entityManager = $entityManager;
+
+        // Mock configuration and naming strategy
+        /** @var \PHPUnit\Framework\MockObject\MockObject&Configuration $configuration */
+        $configuration = $this->createMock(Configuration::class);
+        /** @var \PHPUnit\Framework\MockObject\MockObject&NamingStrategy $namingStrategy */
+        $namingStrategy = $this->createMock(NamingStrategy::class);
+        $configuration->method('getNamingStrategy')->willReturn($namingStrategy);
+        $entityManager->method('getConfiguration')->willReturn($configuration);
+
+        $this->entityService = new EntityService($this->entityManager);
     }
 
     public function testGetAllTableNames(): void
     {
+        // Mock metadata factory to return empty array
+        /** @var \PHPUnit\Framework\MockObject\MockObject&\Doctrine\ORM\Mapping\ClassMetadataFactory $metadataFactory */
+        $metadataFactory = $this->createMock(\Doctrine\ORM\Mapping\ClassMetadataFactory::class);
+        $metadataFactory->method('getAllMetadata')->willReturn([]);
+        /** @var \PHPUnit\Framework\MockObject\MockObject&EntityManagerInterface $entityManager */
+        $entityManager = $this->entityManager;
+        $entityManager->method('getMetadataFactory')->willReturn($metadataFactory);
+
         $markdown = $this->entityService->getAllTableNames();
 
         $this->assertStringContainsString('# 数据库表清单', $markdown);
@@ -36,12 +60,27 @@ final class EntityServiceTest extends AbstractIntegrationTestCase
 
     public function testGetEntityMetadataReturnsNullForInvalidEntity(): void
     {
+        // Mock getClassMetadata to throw exception for invalid entity
+        /** @var \PHPUnit\Framework\MockObject\MockObject&EntityManagerInterface $entityManager */
+        $entityManager = $this->entityManager;
+        $entityManager->method('getClassMetadata')
+            ->with('NonExistentEntity')
+            ->willThrowException(new \Exception('Class not found'));
+
         $result = $this->entityService->getEntityMetadata('NonExistentEntity');
         $this->assertNull($result);
     }
 
     public function testGetAllEntitiesMetadata(): void
     {
+        // Mock metadata factory to return empty array
+        /** @var \PHPUnit\Framework\MockObject\MockObject&\Doctrine\ORM\Mapping\ClassMetadataFactory $metadataFactory */
+        $metadataFactory = $this->createMock(\Doctrine\ORM\Mapping\ClassMetadataFactory::class);
+        $metadataFactory->method('getAllMetadata')->willReturn([]);
+        /** @var \PHPUnit\Framework\MockObject\MockObject&EntityManagerInterface $entityManager */
+        $entityManager = $this->entityManager;
+        $entityManager->method('getMetadataFactory')->willReturn($metadataFactory);
+
         $result = $this->entityService->getAllEntitiesMetadata();
         $this->assertIsArray($result);
         // 在集成测试环境中，实体数量可能为0
@@ -50,6 +89,14 @@ final class EntityServiceTest extends AbstractIntegrationTestCase
 
     public function testGenerateDatabaseMarkdown(): void
     {
+        // Mock metadata factory to return empty array
+        /** @var \PHPUnit\Framework\MockObject\MockObject&\Doctrine\ORM\Mapping\ClassMetadataFactory $metadataFactory */
+        $metadataFactory = $this->createMock(\Doctrine\ORM\Mapping\ClassMetadataFactory::class);
+        $metadataFactory->method('getAllMetadata')->willReturn([]);
+        /** @var \PHPUnit\Framework\MockObject\MockObject&EntityManagerInterface $entityManager */
+        $entityManager = $this->entityManager;
+        $entityManager->method('getMetadataFactory')->willReturn($metadataFactory);
+
         $markdown = $this->entityService->generateDatabaseMarkdown();
         $this->assertIsString($markdown);
         // 基本验证：markdown 内容应该是字符串

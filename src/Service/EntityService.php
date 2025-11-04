@@ -13,11 +13,14 @@ use Doctrine\ORM\Mapping\NamingStrategy;
 readonly class EntityService implements EntityServiceInterface
 {
     private NamingStrategy $namingStrategy;
+    private MarkdownBuilder $markdownBuilder;
 
     public function __construct(
         private EntityManagerInterface $entityManager,
+        MarkdownBuilder $markdownBuilder = null,
     ) {
         $this->namingStrategy = $this->entityManager->getConfiguration()->getNamingStrategy();
+        $this->markdownBuilder = $markdownBuilder ?? new MarkdownBuilder();
     }
 
     /**
@@ -203,7 +206,58 @@ readonly class EntityService implements EntityServiceInterface
      */
     private function extractMappingOptions(array|FieldMapping $mapping): array
     {
-        return is_array($mapping) ? ($mapping['options'] ?? []) : [];
+        if (is_array($mapping)) {
+            return $this->extractArrayOptions($mapping);
+        }
+
+        return $this->extractFieldMappingOptions($mapping);
+    }
+
+    /**
+     * 从数组映射中提取选项
+     *
+     * @param array<string, mixed> $mapping
+     * @return array<string, mixed>
+     */
+    private function extractArrayOptions(array $mapping): array
+    {
+        $options = $mapping['options'] ?? [];
+        if (!is_array($options)) {
+            return [];
+        }
+
+        // Ensure string keys for return type
+        $result = [];
+        foreach ($options as $key => $value) {
+            if (is_string($key)) {
+                $result[$key] = $value;
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * 从FieldMapping对象中提取选项
+     *
+     * @param FieldMapping $mapping
+     * @return array<string, mixed>
+     */
+    private function extractFieldMappingOptions(FieldMapping $mapping): array
+    {
+        $mappingArray = (array) $mapping;
+        /** @var array<string, mixed> $options */
+        $options = $mappingArray['options'] ?? [];
+
+        // Ensure string keys for return type
+        $result = [];
+        foreach ($options as $key => $value) {
+            if (is_string($key)) {
+                $result[$key] = $value;
+            }
+        }
+
+        return $result;
     }
 
     /**
@@ -213,7 +267,11 @@ readonly class EntityService implements EntityServiceInterface
      */
     private function extractLength(array|FieldMapping $mapping): ?int
     {
-        return $mapping['length'] ?? $mapping['precision'] ?? null;
+        if (is_array($mapping)) {
+            $length = $mapping['length'] ?? $mapping['precision'] ?? null;
+            return is_int($length) ? $length : null;
+        }
+        return null;
     }
 
     /**
@@ -223,7 +281,11 @@ readonly class EntityService implements EntityServiceInterface
      */
     private function extractNullable(array|FieldMapping $mapping): bool
     {
-        return $mapping['nullable'] ?? false;
+        if (is_array($mapping)) {
+            $nullable = $mapping['nullable'] ?? false;
+            return (bool) $nullable;
+        }
+        return false;
     }
 
     /**
@@ -295,8 +357,8 @@ readonly class EntityService implements EntityServiceInterface
         return [
             'class' => $enumClass,
             'values' => array_map(
-                fn ($case) => $case instanceof \BackedEnum ? $case->value : $case->name,
-                $enumClass::cases()
+                fn ($case) => $case instanceof \BackedEnum ? $case->value : ($case->name ?? 'unknown'),
+                is_subclass_of($enumClass, \UnitEnum::class) ? $enumClass::cases() : []
             ),
         ];
     }
@@ -325,7 +387,8 @@ readonly class EntityService implements EntityServiceInterface
      */
     private function buildBaseComment(array $info): string
     {
-        return '' !== $info['comment'] ? $info['comment'] : '-';
+        $comment = $info['comment'] ?? '';
+        return is_string($comment) && '' !== $comment ? $comment : '-';
     }
 
     /**
@@ -349,7 +412,17 @@ readonly class EntityService implements EntityServiceInterface
             return $comment;
         }
 
-        return $comment . sprintf(' (可选值: %s)', implode(', ', $info['enum']['values']));
+        $enum = $info['enum'];
+        if (!is_array($enum) || !isset($enum['values'])) {
+            return $comment;
+        }
+
+        $values = $enum['values'];
+        if (!is_array($values)) {
+            return $comment;
+        }
+
+        return $comment . sprintf(' (可选值: %s)', implode(', ', $values));
     }
 
     /**
@@ -380,7 +453,15 @@ readonly class EntityService implements EntityServiceInterface
      */
     private function processAssociationMapping(mixed $mapping): ?array
     {
-        return is_array($mapping) ? $this->buildAssociationInfo($mapping) : null;
+        if (!is_array($mapping)) {
+            return null;
+        }
+
+        // Ensure array has string keys for buildAssociationInfo
+        /** @var array<string, mixed> $typedMapping */
+        $typedMapping = $mapping;
+
+        return $this->buildAssociationInfo($typedMapping);
     }
 
     /**
@@ -512,7 +593,15 @@ readonly class EntityService implements EntityServiceInterface
             return $info;
         }
 
-        $info['joinTable'] = $this->buildJoinTableInfo($joinTable);
+        // Ensure we pass an array with string keys
+        if (!is_array($joinTable)) {
+            return $info;
+        }
+
+        /** @var array<string, mixed> $typedJoinTable */
+        $typedJoinTable = $joinTable;
+
+        $info['joinTable'] = $this->buildJoinTableInfo($typedJoinTable);
 
         return $info;
     }
@@ -549,8 +638,13 @@ readonly class EntityService implements EntityServiceInterface
      */
     private function buildJoinTableInfo(array $joinTable): array
     {
+        $name = $joinTable['name'] ?? '';
+        if (!is_string($name)) {
+            $name = is_scalar($name) ? (string) $name : '';
+        }
+
         return [
-            'name' => (string) $joinTable['name'],
+            'name' => $name,
             'joinColumns' => $this->normalizeJoinColumns($joinTable['joinColumns'] ?? []),
             'inverseJoinColumns' => $this->normalizeJoinColumns($joinTable['inverseJoinColumns'] ?? []),
         ];
@@ -573,7 +667,10 @@ readonly class EntityService implements EntityServiceInterface
             return [];
         }
 
-        return array_map(fn ($column) => $this->normalizeJoinColumn($column), $columns);
+        /** @var array<int, array{name: string, referencedColumnName: string, onDelete: string|null, onUpdate: string|null}> $result */
+        $result = array_map(fn ($column) => $this->normalizeJoinColumn($column), $columns);
+
+        return $result;
     }
 
     /**
@@ -589,7 +686,14 @@ readonly class EntityService implements EntityServiceInterface
      */
     private function normalizeJoinColumn(mixed $joinColumn): array
     {
-        return is_array($joinColumn) ? $this->buildJoinColumnFromArray($joinColumn) : $this->getDefaultJoinColumn();
+        if (!is_array($joinColumn)) {
+            return $this->getDefaultJoinColumn();
+        }
+
+        /** @var array<string, mixed> $typedJoinColumn */
+        $typedJoinColumn = $joinColumn;
+
+        return $this->buildJoinColumnFromArray($typedJoinColumn);
     }
 
     /**
@@ -605,9 +709,19 @@ readonly class EntityService implements EntityServiceInterface
      */
     private function buildJoinColumnFromArray(array $joinColumn): array
     {
+        $name = $joinColumn['name'] ?? '';
+        if (!is_string($name)) {
+            $name = '';
+        }
+
+        $referencedColumnName = $joinColumn['referencedColumnName'] ?? '';
+        if (!is_string($referencedColumnName)) {
+            $referencedColumnName = '';
+        }
+
         return [
-            'name' => (string) ($joinColumn['name'] ?? ''),
-            'referencedColumnName' => (string) ($joinColumn['referencedColumnName'] ?? ''),
+            'name' => $name,
+            'referencedColumnName' => $referencedColumnName,
             'onDelete' => $this->normalizeJoinAction($joinColumn['onDelete'] ?? null),
             'onUpdate' => $this->normalizeJoinAction($joinColumn['onUpdate'] ?? null),
         ];
@@ -877,7 +991,11 @@ readonly class EntityService implements EntityServiceInterface
      */
     private function extractTableName(array $metadata): string
     {
-        return (string) ($metadata['tableName'] ?? '');
+        $tableName = $metadata['tableName'] ?? '';
+        if (!is_string($tableName)) {
+            $tableName = is_scalar($tableName) ? (string) $tableName : '';
+        }
+        return $tableName;
     }
 
     /**
@@ -913,7 +1031,21 @@ readonly class EntityService implements EntityServiceInterface
      */
     private function extractAssociations(array $metadata): array
     {
-        return (array) ($metadata['associations'] ?? []);
+        $associations = $metadata['associations'] ?? [];
+
+        if (!is_array($associations)) {
+            return [];
+        }
+
+        // Ensure we return array<string, mixed>
+        $result = [];
+        foreach ($associations as $key => $value) {
+            if (is_string($key)) {
+                $result[$key] = $value;
+            }
+        }
+
+        return $result;
     }
 
     /**
@@ -928,214 +1060,34 @@ readonly class EntityService implements EntityServiceInterface
      */
     private function buildCompleteTableMarkdown(array $tableInfo): string
     {
+        $fields = $tableInfo['fields'] ?? [];
+        if (!is_array($fields)) {
+            $fields = [];
+        }
+
+        // Ensure fields have correct type for generateFieldsMarkdown
+        /** @var array<int, array<string, mixed>> $typedFields */
+        $typedFields = array_filter($fields, fn ($field) => is_array($field));
+
+        $associations = $tableInfo['associations'] ?? [];
+        if (!is_array($associations)) {
+            $associations = [];
+        }
+
+        // Ensure associations have correct type for generateAssociationsMarkdown
+        /** @var array<string, mixed> $typedAssociations */
+        $typedAssociations = [];
+
+        foreach ($associations as $key => $value) {
+            if (is_string($key)) {
+                $typedAssociations[$key] = $value;
+            }
+        }
+
         return "## {$tableInfo['tableName']}\n" .
                "{$tableInfo['tableComment']}\n\n" .
-               $this->generateFieldsMarkdown($tableInfo['fields']) .
-               $this->generateAssociationsMarkdown($tableInfo['associations']) .
+               $this->markdownBuilder->generateFieldsMarkdown($typedFields) .
+               $this->markdownBuilder->generateAssociationsMarkdown($typedAssociations) .
                "\n---\n\n";
-    }
-
-    /**
-     * 生成字段表格 Markdown
-     *
-     * @param array<int, array<string, mixed>> $fields
-     */
-    private function generateFieldsMarkdown(array $fields): string
-    {
-        return $this->getFieldsMarkdownHeader() .
-               implode('', array_map(fn ($field) => $this->generateSingleFieldMarkdownRow($field), $fields));
-    }
-
-    /**
-     * 获取字段表格头部
-     */
-    private function getFieldsMarkdownHeader(): string
-    {
-        return "### 字段\n" .
-               "| 名称 | 类型 | 长度 | 允许空 | 默认值 | 说明 |\n" .
-               '|--------|------|------|--------|--------|------|';
-    }
-
-    /**
-     * 生成单个字段的 Markdown 行
-     *
-     * @param array<string, mixed> $field
-     */
-    private function generateSingleFieldMarkdownRow(array $field): string
-    {
-        $fieldData = $this->extractFieldDisplayData($field);
-
-        return "\n| {$fieldData['columnName']} | {$fieldData['type']} | {$fieldData['length']} | {$fieldData['nullable']} | {$fieldData['default']} | {$fieldData['comment']} |";
-    }
-
-    /**
-     * 提取字段显示数据
-     *
-     * @param array<string, mixed> $field
-     * @return array<string, string>
-     */
-    private function extractFieldDisplayData(array $field): array
-    {
-        return [
-            'columnName' => (string) $field['columnName'],
-            'type' => (string) $field['type'],
-            'length' => $this->formatFieldLength($field['length'] ?? null),
-            'nullable' => $this->formatNullable($field['nullable'] ?? false),
-            'default' => $this->formatDefaultValue($field['default'] ?? null),
-            'comment' => (string) ($field['comment'] ?? '-'),
-        ];
-    }
-
-    /**
-     * 格式化字段长度
-     */
-    private function formatFieldLength(?int $length): string
-    {
-        return null !== $length ? (string) $length : '-';
-    }
-
-    /**
-     * 格式化是否允许为空
-     */
-    private function formatNullable(bool $nullable): string
-    {
-        return $nullable ? 'Y' : 'N';
-    }
-
-    /**
-     * 格式化默认值
-     */
-    private function formatDefaultValue(mixed $default): string
-    {
-        return null === $default ? '-' : (string) $default;
-    }
-
-    /**
-     * 生成关联关系 Markdown
-     *
-     * @param array<string, array<string, mixed>> $associations
-     */
-    private function generateAssociationsMarkdown(array $associations): string
-    {
-        if ([] === $associations) {
-            return '';
-        }
-
-        return "\n\n### 关系\n" .
-               implode('', array_map(fn ($association) => $this->generateSingleAssociationMarkdown($association), $associations));
-    }
-
-    /**
-     * 生成单个关联关系 Markdown
-     *
-     * @param array<string, mixed> $association
-     */
-    private function generateSingleAssociationMarkdown(array $association): string
-    {
-        return match (true) {
-            $this->hasJoinColumns($association) => $this->generateJoinColumnsMarkdown($association),
-            $this->hasJoinTable($association) => $this->generateJoinTableMarkdown($association),
-            default => $this->generateDirectAssociationMarkdown($association),
-        };
-    }
-
-    /**
-     * 检查是否有 join columns
-     *
-     * @param array<string, mixed> $association
-     */
-    private function hasJoinColumns(array $association): bool
-    {
-        return isset($association['joinColumns']);
-    }
-
-    /**
-     * 检查是否有 join table
-     *
-     * @param array<string, mixed> $association
-     */
-    private function hasJoinTable(array $association): bool
-    {
-        return isset($association['joinTable']);
-    }
-
-    /**
-     * 生成 join table 关联的 Markdown
-     *
-     * @param array<string, mixed> $association
-     */
-    private function generateJoinTableMarkdown(array $association): string
-    {
-        $joinTableName = $this->extractJoinTableName($association['joinTable'] ?? []);
-
-        return "- {$association['type']}：与 `{$association['targetTable']}` 通过中间表 `{$joinTableName}` 关联\n";
-    }
-
-    /**
-     * 生成直接关联的 Markdown
-     *
-     * @param array<string, mixed> $association
-     */
-    private function generateDirectAssociationMarkdown(array $association): string
-    {
-        return "- {$association['type']}：与 `{$association['targetTable']}` 关联\n";
-    }
-
-    /**
-     * 提取 join table 名称
-     */
-    private function extractJoinTableName(mixed $joinTable): string
-    {
-        if (!is_array($joinTable)) {
-            return '';
-        }
-
-        return (string) ($joinTable['name'] ?? '');
-    }
-
-    /**
-     * 生成 join columns 的 Markdown
-     *
-     * @param array<string, mixed> $association
-     */
-    private function generateJoinColumnsMarkdown(array $association): string
-    {
-        $joinColumns = $this->extractJoinColumns($association);
-
-        return implode('', array_map(
-            fn ($joinColumn) => $this->generateJoinColumnMarkdown($association, $joinColumn),
-            $joinColumns
-        ));
-    }
-
-    /**
-     * 提取 join columns
-     *
-     * @param array<string, mixed> $association
-     * @return array<int, mixed>
-     */
-    private function extractJoinColumns(array $association): array
-    {
-        $joinColumns = $association['joinColumns'] ?? [];
-
-        return is_array($joinColumns) ? $joinColumns : [];
-    }
-
-    /**
-     * 生成单个 join column 的 Markdown
-     *
-     * @param array<string, mixed> $association
-     * @param mixed $joinColumn
-     */
-    private function generateJoinColumnMarkdown(array $association, mixed $joinColumn): string
-    {
-        if (!is_array($joinColumn)) {
-            return '';
-        }
-
-        $joinColumnName = $joinColumn['name'] ?? '';
-        $referencedColumnName = $joinColumn['referencedColumnName'] ?? '';
-
-        return "- {$association['type']}：本表 `{$joinColumnName}` 关联 `{$association['targetTable']}` 的 `{$referencedColumnName}`\n";
     }
 }

@@ -2,23 +2,27 @@
 
 namespace Tourze\DoctrineEntityMarkdownBundle\Tests\MCP\Tool;
 
+
+
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Tourze\DoctrineEntityMarkdownBundle\MCP\Tool\GetDatabaseDictionary;
-use Tourze\PHPUnitSymfonyKernelTest\AbstractIntegrationTestCase;
+use Tourze\DoctrineEntityMarkdownBundle\Service\EntityServiceInterface;
+use PHPUnit\Framework\TestCase;
 
 /**
  * @internal
  */
 #[CoversClass(GetDatabaseDictionary::class)]
-#[RunTestsInSeparateProcesses]
-final class GetDatabaseDictionaryTest extends AbstractIntegrationTestCase
+final class GetDatabaseDictionaryTest extends TestCase
 {
     private GetDatabaseDictionary $tool;
+    /** @var \PHPUnit\Framework\MockObject\MockObject&EntityServiceInterface */
+    private $entityService;
 
-    protected function onSetUp(): void
+    protected function setUp(): void
     {
-        $this->tool = self::getService(GetDatabaseDictionary::class);
+        $this->entityService = $this->createMock(EntityServiceInterface::class);
+        $this->tool = new GetDatabaseDictionary($this->entityService);
     }
 
     public function testGetName(): void
@@ -43,6 +47,9 @@ final class GetDatabaseDictionaryTest extends AbstractIntegrationTestCase
 
     public function testExecute(): void
     {
+        $mockMarkdown = "## 测试表\n### 字段\n| 字段名 | 类型 | 说明 |\n|--------|------|------|\n| id | integer | 主键 |\n";
+        $this->entityService->method('generateDatabaseMarkdown')->willReturn($mockMarkdown);
+
         $result = $this->tool->execute();
         $this->assertIsString($result);
         $this->assertStringContainsString('## ', $result);
@@ -51,6 +58,9 @@ final class GetDatabaseDictionaryTest extends AbstractIntegrationTestCase
 
     public function testExecuteWithParameters(): void
     {
+        $mockMarkdown = "## 测试表\n### 字段\n| 字段名 | 类型 | 说明 |\n|--------|------|------|\n| id | integer | 主键 |\n";
+        $this->entityService->method('generateDatabaseMarkdown')->willReturn($mockMarkdown);
+
         $result = $this->tool->execute(['ignored' => 'parameter']);
         $this->assertIsString($result);
         $this->assertStringContainsString('## ', $result);

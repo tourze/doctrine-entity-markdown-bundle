@@ -16,31 +16,27 @@ use Tourze\PHPUnitSymfonyKernelTest\AbstractCommandTestCase;
 #[RunTestsInSeparateProcesses]
 final class GenerateEntityMarkdownCommandTest extends AbstractCommandTestCase
 {
-    private EntityServiceInterface $entityService;
-
     protected function onSetUp(): void
     {
-        $this->entityService = $this->createMock(EntityServiceInterface::class);
-        self::getContainer()->set(EntityServiceInterface::class, $this->entityService);
+        $entityService = $this->createMock(EntityServiceInterface::class);
+        $entityService->method('generateDatabaseMarkdown')->willReturn("## 数据库字典\n测试内容");
+
+        // 注册Mock服务到容器
+        static::getContainer()->set(EntityServiceInterface::class, $entityService);
     }
 
     protected function getCommandTester(): CommandTester
     {
-        $command = self::getService(GenerateEntityMarkdownCommand::class);
-
-        return new CommandTester($command);
+        return new CommandTester(static::getService(GenerateEntityMarkdownCommand::class));
     }
 
     public function testExecute(): void
     {
-        $mockMarkdown = "## 表格内容\n表格详情";
-        $this->entityService->method('generateDatabaseMarkdown')->willReturn($mockMarkdown);
-
         $commandTester = $this->getCommandTester();
         $commandTester->execute([]);
 
         $output = $commandTester->getDisplay();
         $this->assertStringContainsString('# 数据库字典', $output);
-        $this->assertStringContainsString($mockMarkdown, $output);
+        $this->assertStringContainsString('测试内容', $output);
     }
 }
