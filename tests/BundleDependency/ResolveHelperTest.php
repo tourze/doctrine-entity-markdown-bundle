@@ -22,6 +22,7 @@ class ResolveHelperTest extends TestCase
 
         $result = ResolveHelper::resolveBundleDependencies($bundles);
 
-        $this->assertIsArray($result);
+        // ResolveHelper::resolveBundleDependencies() 返回 \Traversable (Generator)
+        $this->assertInstanceOf(\Traversable::class, $result);
     }
 }
