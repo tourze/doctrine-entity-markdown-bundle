@@ -25,9 +25,7 @@
   },
   "autoload": {
     "psr-4": {
-      "Tourze\\DoctrineEntityMarkdownBundle\\": "src",
-      "Tourze\\BundleDependency\\": "src/BundleDependency",
-      "Tourze\\PHPUnitBase\\": "src/PHPUnitBase"
+      "Tourze\\DoctrineEntityMarkdownBundle\\": "src"
     }
   },
   "autoload-dev": {
