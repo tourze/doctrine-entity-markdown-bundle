@@ -12,7 +12,7 @@ use Doctrine\ORM\Mapping\NamingStrategy;
 /**
  * @template TEntity of object
  */
-readonly class EntityService implements EntityServiceInterface
+final readonly class EntityService implements EntityServiceInterface
 {
     private NamingStrategy $namingStrategy;
     private MarkdownBuilder $markdownBuilder;

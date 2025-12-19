@@ -7,7 +7,7 @@ namespace Tourze\DoctrineEntityMarkdownBundle\MCP\Tool;
 use Tourze\DoctrineEntityMarkdownBundle\Service\EntityServiceInterface;
 use Tourze\MCPContracts\ToolInterface;
 
-class GetDatabaseDictionary implements ToolInterface
+final class GetDatabaseDictionary implements ToolInterface
 {
     public function __construct(
         private readonly EntityServiceInterface $entityService,

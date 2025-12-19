@@ -7,7 +7,7 @@ namespace Tourze\DoctrineEntityMarkdownBundle\Service;
 /**
  * 构建Markdown输出的辅助类
  */
-class MarkdownBuilder
+final class MarkdownBuilder
 {
     /**
      * 构建字段表格头部

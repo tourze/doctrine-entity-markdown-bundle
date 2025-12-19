@@ -5,25 +5,25 @@ declare(strict_types=1);
 namespace Tourze\DoctrineEntityMarkdownBundle\Tests\Service;
 
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\TestCase;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Tourze\DoctrineEntityMarkdownBundle\Service\MarkdownBuilder;
+use Tourze\PHPUnitSymfonyKernelTest\AbstractIntegrationTestCase;
 
 /**
- * @codeCoverageIgnore
+ * @internal
  */
 #[CoversClass(MarkdownBuilder::class)]
-class MarkdownBuilderTest extends TestCase
+#[RunTestsInSeparateProcesses]
+final class MarkdownBuilderTest extends AbstractIntegrationTestCase
 {
-    private MarkdownBuilder $builder;
-
-    protected function setUp(): void
+    protected function onSetUp(): void
     {
-        $this->builder = new MarkdownBuilder();
     }
 
     public function testGetFieldsMarkdownHeader(): void
     {
-        $header = $this->builder->getFieldsMarkdownHeader();
+        $builder = self::getService(MarkdownBuilder::class);
+        $header = $builder->getFieldsMarkdownHeader();
 
         $this->assertStringContainsString('### 字段', $header);
         $this->assertStringContainsString('| 名称 | 类型 | 长度 | 允许空 | 默认值 | 说明 |', $header);
@@ -31,6 +31,7 @@ class MarkdownBuilderTest extends TestCase
 
     public function testGenerateSingleFieldMarkdownRow(): void
     {
+        $builder = self::getService(MarkdownBuilder::class);
         $field = [
             'columnName' => 'id',
             'type' => 'int',
@@ -40,7 +41,7 @@ class MarkdownBuilderTest extends TestCase
             'comment' => '主键',
         ];
 
-        $row = $this->builder->generateSingleFieldMarkdownRow($field);
+        $row = $builder->generateSingleFieldMarkdownRow($field);
 
         $this->assertStringContainsString('| id |', $row);
         $this->assertStringContainsString('| int |', $row);
@@ -50,6 +51,7 @@ class MarkdownBuilderTest extends TestCase
 
     public function testGenerateFieldsMarkdown(): void
     {
+        $builder = self::getService(MarkdownBuilder::class);
         $fields = [
             [
                 'columnName' => 'id',
@@ -69,7 +71,7 @@ class MarkdownBuilderTest extends TestCase
             ],
         ];
 
-        $markdown = $this->builder->generateFieldsMarkdown($fields);
+        $markdown = $builder->generateFieldsMarkdown($fields);
 
         $this->assertStringContainsString('### 字段', $markdown);
         $this->assertStringContainsString('| id |', $markdown);
@@ -78,6 +80,7 @@ class MarkdownBuilderTest extends TestCase
 
     public function testGenerateAssociationsMarkdown(): void
     {
+        $builder = self::getService(MarkdownBuilder::class);
         $associations = [
             'user' => [
                 'type' => '多对一',
@@ -91,7 +94,7 @@ class MarkdownBuilderTest extends TestCase
             ],
         ];
 
-        $markdown = $this->builder->generateAssociationsMarkdown($associations);
+        $markdown = $builder->generateAssociationsMarkdown($associations);
 
         $this->assertStringContainsString('### 关系', $markdown);
         $this->assertStringContainsString('多对一', $markdown);
@@ -100,13 +103,15 @@ class MarkdownBuilderTest extends TestCase
 
     public function testGenerateAssociationsMarkdownEmpty(): void
     {
-        $markdown = $this->builder->generateAssociationsMarkdown([]);
+        $builder = self::getService(MarkdownBuilder::class);
+        $markdown = $builder->generateAssociationsMarkdown([]);
 
         $this->assertSame('', $markdown);
     }
 
     public function testExtractFieldDisplayData(): void
     {
+        $builder = self::getService(MarkdownBuilder::class);
         $field = [
             'columnName' => 'id',
             'type' => 'int',
@@ -116,7 +121,7 @@ class MarkdownBuilderTest extends TestCase
             'comment' => '主键ID',
         ];
 
-        $displayData = $this->builder->extractFieldDisplayData($field);
+        $displayData = $builder->extractFieldDisplayData($field);
 
         $this->assertArrayHasKey('columnName', $displayData);
         $this->assertArrayHasKey('type', $displayData);

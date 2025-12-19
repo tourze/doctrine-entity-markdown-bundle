@@ -14,7 +14,7 @@ use Tourze\DoctrineEntityMarkdownBundle\Service\EntityServiceInterface;
     name: self::NAME,
     description: 'Generate database dictionary in markdown format',
 )]
-class GenerateEntityMarkdownCommand extends Command
+final class GenerateEntityMarkdownCommand extends Command
 {
     public const NAME = 'doctrine:generate:markdown';
 

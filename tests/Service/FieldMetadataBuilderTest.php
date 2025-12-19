@@ -5,30 +5,28 @@ declare(strict_types=1);
 namespace Tourze\DoctrineEntityMarkdownBundle\Tests\Service;
 
 use Doctrine\ORM\Mapping\ClassMetadata;
-use Doctrine\ORM\Mapping\UnderscoreNamingStrategy;
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\TestCase;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Tourze\DoctrineEntityMarkdownBundle\Service\FieldMetadataBuilder;
+use Tourze\PHPUnitSymfonyKernelTest\AbstractIntegrationTestCase;
 
-/**
- * @codeCoverageIgnore
- */
 #[CoversClass(FieldMetadataBuilder::class)]
-class FieldMetadataBuilderTest extends TestCase
+#[RunTestsInSeparateProcesses]
+final class FieldMetadataBuilderTest extends AbstractIntegrationTestCase
 {
-    private FieldMetadataBuilder $builder;
-
-    protected function setUp(): void
+    protected function onSetUp(): void
     {
-        $this->builder = new FieldMetadataBuilder(new UnderscoreNamingStrategy());
     }
 
     public function testGetFieldsInfo(): void
     {
-        // 创建一个模拟的 ClassMetadata
-        $metadata = $this->createMock(ClassMetadata::class);
-        $metadata->name = 'TestEntity';
-        $metadata->identifier = ['id'];
+        $builder = self::getService(FieldMetadataBuilder::class);
+
+        // 创建一个真实的 ClassMetadata 对象用于测试（使用 stdClass 作为占位符）
+        $metadata = new ClassMetadata(\stdClass::class);
+        $metadata->setPrimaryTable(['name' => 'test_entity']);
+
+        // 直接设置 fieldMappings 为数组（兼容 FieldMetadataBuilder 的实现）
         $metadata->fieldMappings = [
             'id' => [
                 'fieldName' => 'id',
@@ -46,8 +44,9 @@ class FieldMetadataBuilderTest extends TestCase
                 'options' => ['comment' => '名称'],
             ],
         ];
+        $metadata->identifier = ['id'];
 
-        $result = $this->builder->getFieldsInfo($metadata);
+        $result = $builder->getFieldsInfo($metadata);
 
         $this->assertIsArray($result);
         $this->assertArrayHasKey('id', $result);
@@ -68,33 +67,42 @@ class FieldMetadataBuilderTest extends TestCase
 
     public function testGetTypeMapping(): void
     {
-        $metadata = $this->createMock(ClassMetadata::class);
-        $metadata->name = 'TestEntity';
-        $metadata->identifier = [];
+        $builder = self::getService(FieldMetadataBuilder::class);
+
+        // 创建一个真实的 ClassMetadata 对象（使用 stdClass 作为占位符）
+        $metadata = new ClassMetadata(\stdClass::class);
+        $metadata->setPrimaryTable(['name' => 'test_entity']);
+
+        // 直接设置 fieldMappings 为数组（兼容 FieldMetadataBuilder 的实现）
         $metadata->fieldMappings = [
             'stringField' => [
+                'fieldName' => 'stringField',
                 'type' => 'string',
                 'options' => [],
             ],
             'textField' => [
+                'fieldName' => 'textField',
                 'type' => 'text',
                 'options' => [],
             ],
             'intField' => [
+                'fieldName' => 'intField',
                 'type' => 'integer',
                 'options' => [],
             ],
             'boolField' => [
+                'fieldName' => 'boolField',
                 'type' => 'boolean',
                 'options' => [],
             ],
             'jsonField' => [
+                'fieldName' => 'jsonField',
                 'type' => 'json',
                 'options' => [],
             ],
         ];
 
-        $result = $this->builder->getFieldsInfo($metadata);
+        $result = $builder->getFieldsInfo($metadata);
 
         $this->assertSame('varchar', $result['stringField']['type']);
         $this->assertSame('text', $result['textField']['type']);

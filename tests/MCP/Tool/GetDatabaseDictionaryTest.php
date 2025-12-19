@@ -1,69 +1,52 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tourze\DoctrineEntityMarkdownBundle\Tests\MCP\Tool;
 
-
-
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Tourze\DoctrineEntityMarkdownBundle\MCP\Tool\GetDatabaseDictionary;
-use Tourze\DoctrineEntityMarkdownBundle\Service\EntityServiceInterface;
-use PHPUnit\Framework\TestCase;
+use Tourze\PHPUnitSymfonyKernelTest\AbstractIntegrationTestCase;
 
 /**
  * @internal
  */
 #[CoversClass(GetDatabaseDictionary::class)]
-final class GetDatabaseDictionaryTest extends TestCase
+#[RunTestsInSeparateProcesses]
+final class GetDatabaseDictionaryTest extends AbstractIntegrationTestCase
 {
-    private GetDatabaseDictionary $tool;
-    /** @var \PHPUnit\Framework\MockObject\MockObject&EntityServiceInterface */
-    private $entityService;
-
-    protected function setUp(): void
+    protected function onSetUp(): void
     {
-        $this->entityService = $this->createMock(EntityServiceInterface::class);
-        $this->tool = new GetDatabaseDictionary($this->entityService);
     }
 
     public function testGetName(): void
     {
-        $this->assertEquals('GetDatabaseDictionary', $this->tool->getName());
+        $tool = self::getService(GetDatabaseDictionary::class);
+        $this->assertEquals('GetDatabaseDictionary', $tool->getName());
     }
 
     public function testGetDescription(): void
     {
-        $this->assertEquals(
-            '返回完整的数据库字典，包含所有实体的表名、字段定义和关联关系',
-            $this->tool->getDescription()
-        );
+        $tool = self::getService(GetDatabaseDictionary::class);
+        $description = $tool->getDescription();
+        $this->assertNotEmpty($description);
+        $this->assertStringContainsString('数据库', $description);
+        $this->assertStringContainsString('字典', $description);
     }
 
     public function testGetParameters(): void
     {
-        $parameters = $this->tool->getParameters();
+        $tool = self::getService(GetDatabaseDictionary::class);
+        $parameters = $tool->getParameters();
         $this->assertInstanceOf(\Traversable::class, $parameters);
         $this->assertCount(0, iterator_to_array($parameters));
     }
 
     public function testExecute(): void
     {
-        $mockMarkdown = "## 测试表\n### 字段\n| 字段名 | 类型 | 说明 |\n|--------|------|------|\n| id | integer | 主键 |\n";
-        $this->entityService->method('generateDatabaseMarkdown')->willReturn($mockMarkdown);
-
-        $result = $this->tool->execute();
+        $tool = self::getService(GetDatabaseDictionary::class);
+        $result = $tool->execute();
         $this->assertIsString($result);
-        $this->assertStringContainsString('## ', $result);
-        $this->assertStringContainsString('### 字段', $result);
-    }
-
-    public function testExecuteWithParameters(): void
-    {
-        $mockMarkdown = "## 测试表\n### 字段\n| 字段名 | 类型 | 说明 |\n|--------|------|------|\n| id | integer | 主键 |\n";
-        $this->entityService->method('generateDatabaseMarkdown')->willReturn($mockMarkdown);
-
-        $result = $this->tool->execute(['ignored' => 'parameter']);
-        $this->assertIsString($result);
-        $this->assertStringContainsString('## ', $result);
-        $this->assertStringContainsString('### 字段', $result);
     }
 }

@@ -6,7 +6,6 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\Console\Tester\CommandTester;
 use Tourze\DoctrineEntityMarkdownBundle\Command\GenerateEntityMarkdownCommand;
-use Tourze\DoctrineEntityMarkdownBundle\Service\EntityServiceInterface;
 use Tourze\PHPUnitSymfonyKernelTest\AbstractCommandTestCase;
 
 /**
@@ -18,11 +17,7 @@ final class GenerateEntityMarkdownCommandTest extends AbstractCommandTestCase
 {
     protected function onSetUp(): void
     {
-        $entityService = $this->createMock(EntityServiceInterface::class);
-        $entityService->method('generateDatabaseMarkdown')->willReturn("## 数据库字典\n测试内容");
-
-        // 注册Mock服务到容器
-        static::getContainer()->set(EntityServiceInterface::class, $entityService);
+        // 不需要 Mock，使用真实服务
     }
 
     protected function getCommandTester(): CommandTester
@@ -36,7 +31,9 @@ final class GenerateEntityMarkdownCommandTest extends AbstractCommandTestCase
         $commandTester->execute([]);
 
         $output = $commandTester->getDisplay();
+        // 验证输出包含数据库字典标题
         $this->assertStringContainsString('# 数据库字典', $output);
-        $this->assertStringContainsString('测试内容', $output);
+        // 验证命令执行成功
+        $this->assertSame(0, $commandTester->getStatusCode());
     }
 }

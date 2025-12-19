@@ -12,7 +12,7 @@ use Doctrine\ORM\Mapping\NamingStrategy;
  * 字段元数据构建器
  * 负责从 Doctrine 映射中提取和构建字段信息
  */
-readonly class FieldMetadataBuilder
+final readonly class FieldMetadataBuilder
 {
     public function __construct(
         private NamingStrategy $namingStrategy,

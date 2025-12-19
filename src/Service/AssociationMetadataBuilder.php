@@ -11,7 +11,7 @@ use Doctrine\ORM\Mapping\ClassMetadata;
  * 关联关系元数据构建器
  * 负责从 Doctrine 映射中提取和构建关联关系信息
  */
-readonly class AssociationMetadataBuilder
+final readonly class AssociationMetadataBuilder
 {
     public function __construct(
         private EntityManagerInterface $entityManager,
